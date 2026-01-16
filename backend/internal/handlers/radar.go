@@ -1,8 +1,8 @@
 package handlers
 
 import (
+	"log"
 	"net/http"
-	"time"
 
 	"github.com/dazaran/MatchRadar/backend/internal/models"
 	"github.com/gin-gonic/gin"
@@ -13,72 +13,66 @@ type RadarHandler struct {
 	DB *gorm.DB
 }
 
-// Запрос от клиента
-type UpdateLocationRequest struct {
-	UserID    uint    `json:"user_id"` // В реальном аппе берем из токена авторизации!
+type RadarRequest struct {
+	UserID    uint    `json:"user_id"`
 	Latitude  float64 `json:"latitude"`
 	Longitude float64 `json:"longitude"`
 }
 
-// Ответ клиенту
-type RadarResponse struct {
-	NearbyUsers []models.User `json:"nearby_users"`
-	Message     string        `json:"message"`
-}
-
 func (h *RadarHandler) UpdateAndSearch(c *gin.Context) {
-	var req UpdateLocationRequest
+	var req RadarRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	// 1. Обновляем локацию текущего юзера
-	// Мы используем Raw SQL для создания точки geography(Point, 4326)
-	// 4326 - это стандарт GPS (WGS 84).
-	query := `
-		INSERT INTO users (id, latitude, longitude, last_seen, location)
-		VALUES (?, ?, ?, ?, ST_SetSRID(ST_MakePoint(?, ?), 4326))
-		ON CONFLICT (id) DO UPDATE SET
-			latitude = EXCLUDED.latitude,
-			longitude = EXCLUDED.longitude,
-			last_seen = EXCLUDED.last_seen,
-			location = EXCLUDED.location;
-	`
-	// Примечание: поле 'location' мы должны добавить в базу миграцией (см. ниже)
-	now := time.Now()
-	if err := h.DB.Exec(query, req.UserID, req.Latitude, req.Longitude, now, req.Longitude, req.Latitude).Error; err != nil {
+	// 1. Обновляем (или создаем) ТЕБЯ. 
+	// ВАЖНО: PostGIS ждет порядок (Longitude, Latitude) !!!
+	user := models.User{ID: req.UserID, Latitude: req.Latitude, Longitude: req.Longitude}
+	
+	// Используем Upsert (обновить если есть, создать если нет)
+	result := h.DB.Clauses(gorm.Clause{
+		OnConflict: gorm.Clause{
+			Columns:   []gorm.Clause.Column{{Name: "id"}},
+			DoUpdates: gorm.Clause.Assignments(map[string]interface{}{
+				"latitude":  req.Latitude,
+				"longitude": req.Longitude,
+				"last_seen": gorm.Expr("NOW()"),
+				"location":  gorm.Expr("ST_SetSRID(ST_MakePoint(?, ?), 4326)", req.Longitude, req.Latitude), // 👈 ТУТ БЫЛА ОШИБКА (нужен Lng, Lat)
+			}),
+		},
+	}).Create(&user)
+
+	if result.Error != nil {
+		log.Println("❌ Ошибка обновления пользователя:", result.Error)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update location"})
 		return
 	}
 
-	// 2. Ищем людей рядом (Радиус: 500 метров для GPS этапа)
-	// Логика: "Дай мне всех, кто в 500м, кроме меня, и кто был онлайн последние 15 минут"
+	// 2. Ищем людей рядом (Элис)
 	var nearbyUsers []models.User
 	
-	// ST_DWithin(location, ST_MakePoint(lon, lat)::geography, radius_in_meters)
-	searchQuery := `
-		SELECT id, name, photo_url, ble_uuid, latitude, longitude 
-		FROM users 
-		WHERE id != ? 
-		AND last_seen > ?
-		AND ST_DWithin(
-			location, 
-			ST_SetSRID(ST_MakePoint(?, ?), 4326)::geography, 
-			500
-		)
-	`
-	
-	// Ищем тех, кто был активен последние 15 минут
-	timeWindow := now.Add(-15 * time.Minute)
-	
-	if err := h.DB.Raw(searchQuery, req.UserID, timeWindow, req.Longitude, req.Latitude).Scan(&nearbyUsers).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Radar malfunction"})
+	// Ищем всех в радиусе 5000 метров (5 км), кроме тебя самого
+	// И снова ВАЖНО: ST_MakePoint(Longitude, Latitude)
+	err := h.DB.Where("id != ? AND ST_DWithin(location, ST_SetSRID(ST_MakePoint(?, ?), 4326)::geography, 5000)", 
+		req.UserID, req.Longitude, req.Latitude).Find(&nearbyUsers).Error
+
+	if err != nil {
+		log.Println("❌ Ошибка поиска:", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Search failed"})
 		return
 	}
 
-	c.JSON(http.StatusOK, RadarResponse{
-		NearbyUsers: nearbyUsers,
-		Message:     "Radar scan complete 🛰️",
+	// Лог для отладки
+	log.Printf("🔍 Радар: Пользователь %d ищет. Найдено людей: %d", req.UserID, len(nearbyUsers))
+
+	// Если никого нет, возвращаем пустой массив [], а не null
+	if nearbyUsers == nil {
+		nearbyUsers = []models.User{}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":      "Radar scan complete 🛰️",
+		"nearby_users": nearbyUsers,
 	})
 }
