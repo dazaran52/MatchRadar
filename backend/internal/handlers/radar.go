@@ -1,4 +1,3 @@
-cat << 'EOF' > backend/internal/handlers/radar.go
 package handlers
 
 import (
