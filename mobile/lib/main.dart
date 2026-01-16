@@ -68,65 +68,69 @@ class _RadarScreenState extends State<RadarScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Stack(
-        alignment: Alignment.center,
-        children: [
-          if (_isScanning)
-          ...List.generate(3, (index) {
-            return Container(
-              width: 300,
-              height: 300,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.redAccent.withOpacity(0.3), width: 2),
+      // 👇 1. Добавили SizedBox.expand, чтобы радар был на весь экран
+      body: SizedBox.expand( 
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            if (_isScanning)
+            ...List.generate(3, (index) {
+              return Container(
+                width: 300,
+                height: 300,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.redAccent.withOpacity(0.3), width: 2),
+                ),
+              )
+              .animate(onPlay: (controller) => controller.repeat())
+              .scale(duration: 2.seconds, delay: (index * 600).ms, begin: const Offset(0.1, 0.1), end: const Offset(1.5, 1.5))
+              .fadeOut(duration: 2.seconds, delay: (index * 600).ms);
+            }),
+
+            // 👇 2. Поменяли иконку, а то "стрелочка" визуально кажется кривой
+            const Icon(Icons.location_on, color: Colors.white, size: 50),
+
+            Positioned(
+              top: 50,
+              child: Text(
+                _nearbyUsers.isEmpty ? "Scanning..." : "Found: ${_nearbyUsers.length}",
+                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
-            )
-            .animate(onPlay: (controller) => controller.repeat())
-            .scale(duration: 2.seconds, delay: (index * 600).ms, begin: const Offset(0.1, 0.1), end: const Offset(1.5, 1.5))
-            .fadeOut(duration: 2.seconds, delay: (index * 600).ms);
-          }),
-
-          const Icon(Icons.navigation, color: Colors.white, size: 40),
-
-          Positioned(
-            top: 50,
-            child: Text(
-              _nearbyUsers.isEmpty ? "Scanning..." : "Found: ${_nearbyUsers.length}",
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
-          ),
 
-          ..._nearbyUsers.map((user) {
-            return Positioned(
-              top: 150, 
-              child: Column(
-                children: [
-                  Container(
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.greenAccent, width: 3),
-                      boxShadow: [BoxShadow(color: Colors.greenAccent.withOpacity(0.5), blurRadius: 20)],
+            ..._nearbyUsers.map((user) {
+              return Positioned(
+                top: 150, 
+                child: Column(
+                  children: [
+                    Container(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.greenAccent, width: 3),
+                        boxShadow: [BoxShadow(color: Colors.greenAccent.withOpacity(0.5), blurRadius: 20)],
+                      ),
+                      child: CircleAvatar(
+                        radius: 50,
+                        backgroundImage: NetworkImage(user.photoUrl),
+                      ),
+                    ).animate().scale(duration: 500.ms, curve: Curves.elasticOut),
+                    const SizedBox(height: 10),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(color: Colors.grey[900], borderRadius: BorderRadius.circular(20)),
+                      child: Text(
+                        "${user.name} \n📍 ~100m", 
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                      ),
                     ),
-                    child: CircleAvatar(
-                      radius: 50,
-                      backgroundImage: NetworkImage(user.photoUrl),
-                    ),
-                  ).animate().scale(duration: 500.ms, curve: Curves.elasticOut),
-                  const SizedBox(height: 10),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(color: Colors.grey[900], borderRadius: BorderRadius.circular(20)),
-                    child: Text(
-                      "${user.name} \n📍 ~100m", 
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          }).toList(),
-        ],
+                  ],
+                ),
+              );
+            }).toList(),
+          ],
+        ),
       ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: _isScanning ? Colors.red : Colors.green,
