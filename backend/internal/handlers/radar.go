@@ -72,4 +72,3 @@ func (h *RadarHandler) UpdateAndSearch(c *gin.Context) {
 		"nearby_users": nearbyUsers,
 	})
 }
-EOF
