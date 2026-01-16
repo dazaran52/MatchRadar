@@ -1,3 +1,4 @@
+cat << 'EOF' > backend/internal/handlers/radar.go
 package handlers
 
 import (
@@ -28,6 +29,7 @@ func (h *RadarHandler) UpdateAndSearch(c *gin.Context) {
 	}
 
 	// 1. Обновляем (или создаем) пользователя. 
+	// PostGIS ждет порядок (Longitude, Latitude)
 	user := models.User{ID: req.UserID, Latitude: req.Latitude, Longitude: req.Longitude}
 	
 	// Используем Upsert (обновить если есть, создать если нет)
