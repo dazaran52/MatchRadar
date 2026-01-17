@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:geolocator/geolocator.dart'; // 👈 Добавили библиотеку GPS
 import 'api_service.dart';
 
 void main() {
@@ -36,9 +37,9 @@ class _RadarScreenState extends State<RadarScreen> {
   List<User> _nearbyUsers = [];
   bool _isScanning = true;
   Timer? _timer;
-
-  final double myLat = 50.0750;
-  final double myLng = 14.4370;
+  
+  // Больше никаких хардкодных координат!
+  String _statusMessage = "Initializing GPS..."; 
 
   @override
   void initState() {
@@ -46,15 +47,61 @@ class _RadarScreenState extends State<RadarScreen> {
     _startRadar();
   }
 
+  // 🔥 Магия получения координат
+  Future<Position> _determinePosition() async {
+    bool serviceEnabled;
+    LocationPermission permission;
+
+    // 1. Проверяем, включен ли GPS
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      return Future.error('Location services are disabled.');
+    }
+
+    // 2. Проверяем разрешения
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        return Future.error('Location permissions are denied');
+      }
+    }
+    
+    if (permission == LocationPermission.deniedForever) {
+      return Future.error('Location permissions are permanently denied');
+    }
+
+    // 3. Возвращаем текущую позицию
+    return await Geolocator.getCurrentPosition();
+  }
+
   void _startRadar() {
-    _timer = Timer.periodic(const Duration(seconds: 2), (timer) async {
+    // Сканируем каждые 3 секунды
+    _timer = Timer.periodic(const Duration(seconds: 3), (timer) async {
       if (!_isScanning) return;
-      print("📡 Radar Ping...");
-      final users = await _api.scanRadar(1, myLat, myLng);
-      if (mounted) {
+
+      try {
+        // 👇 Получаем РЕАЛЬНЫЕ координаты
+        Position position = await _determinePosition();
+        
         setState(() {
-          _nearbyUsers = users;
+          _statusMessage = "Scanning at \n${position.latitude.toStringAsFixed(4)}, ${position.longitude.toStringAsFixed(4)}";
         });
+
+        // Отправляем их на сервер
+        print("📡 Ping Server: ${position.latitude}, ${position.longitude}");
+        final users = await _api.scanRadar(1, position.latitude, position.longitude);
+        
+        if (mounted) {
+          setState(() {
+            _nearbyUsers = users;
+          });
+        }
+      } catch (e) {
+        print("❌ GPS Error: $e");
+        if (mounted) {
+           setState(() => _statusMessage = "GPS Error: $e");
+        }
       }
     });
   }
@@ -68,11 +115,11 @@ class _RadarScreenState extends State<RadarScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // 👇 1. Добавили SizedBox.expand, чтобы радар был на весь экран
       body: SizedBox.expand( 
         child: Stack(
           alignment: Alignment.center,
           children: [
+            // Анимация радара
             if (_isScanning)
             ...List.generate(3, (index) {
               return Container(
@@ -88,17 +135,19 @@ class _RadarScreenState extends State<RadarScreen> {
               .fadeOut(duration: 2.seconds, delay: (index * 600).ms);
             }),
 
-            // 👇 2. Поменяли иконку, а то "стрелочка" визуально кажется кривой
             const Icon(Icons.location_on, color: Colors.white, size: 50),
 
+            // Статус вверху
             Positioned(
               top: 50,
               child: Text(
-                _nearbyUsers.isEmpty ? "Scanning..." : "Found: ${_nearbyUsers.length}",
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                _nearbyUsers.isEmpty ? _statusMessage : "Found: ${_nearbyUsers.length}",
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white70),
               ),
             ),
 
+            // Найденные пользователи
             ..._nearbyUsers.map((user) {
               return Positioned(
                 top: 150, 
@@ -120,7 +169,7 @@ class _RadarScreenState extends State<RadarScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(color: Colors.grey[900], borderRadius: BorderRadius.circular(20)),
                       child: Text(
-                        "${user.name} \n📍 ~100m", 
+                        "${user.name} \n📍 Nearby", 
                         textAlign: TextAlign.center,
                         style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                       ),
