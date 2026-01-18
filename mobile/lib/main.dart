@@ -51,45 +51,31 @@ class _RadarScreenState extends State<RadarScreen> {
     _initRadar();
   }
 
-  void _initRadar() async {
-    // 1. Запускаем BLE
-    bool bleReady = await _ble.init();
-    if (bleReady) {
-      _ble.startScan();
-      // Слушаем эфир
-      _ble.scanResults.listen((results) {
-        if (mounted) {
-          setState(() {
-            _bleDevices = results;
-          });
-        }
-      });
-    }
-
-    // 2. Запускаем цикл GPS
+  void _initRadar() {
+    // 1. СРАЗУ запускаем GPS-цикл (Интернет-радар)
+    // Теперь он не ждет Bluetooth и работает всегда!
     _startGpsCycle();
+
+    // 2. И только потом пробуем запустить Bluetooth (в фоновом режиме)
+    _initBle();
   }
 
-  void _startGpsCycle() {
-    _timer = Timer.periodic(const Duration(seconds: 5), (timer) async {
-      if (!_isScanning) return;
-      try {
-        Position position = await _determinePosition();
-        setState(() => _statusMessage = "GPS: ${position.latitude.toStringAsFixed(4)}, ${position.longitude.toStringAsFixed(4)}");
-        
-        final users = await _api.scanRadar(1, position.latitude, position.longitude);
-        if (mounted) setState(() => _serverUsers = users);
-        
-        // Перезапускаем скан BLE каждые 5 секунд, чтобы список был свежим
-        if (!timer.tick.isEven) { 
-           _ble.stopScan();
-           _ble.startScan();
-        }
-
-      } catch (e) {
-        print("Error: $e");
+  Future<void> _initBle() async {
+    try {
+      bool bleReady = await _ble.init();
+      if (bleReady) {
+        _ble.startScan();
+        _ble.scanResults.listen((results) {
+          if (mounted) {
+            setState(() {
+              _bleDevices = results;
+            });
+          }
+        });
       }
-    });
+    } catch (e) {
+      print("Bluetooth init failed (it's okay): $e");
+    }
   }
 
   Future<Position> _determinePosition() async {
