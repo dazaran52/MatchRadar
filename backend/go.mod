@@ -1,4 +1,4 @@
-module github.com/dazaran/MatchRadar/backend
+module github.com/dazaran/Glitch/backend
 
 go 1.25.4
 
