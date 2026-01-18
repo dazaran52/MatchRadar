@@ -154,24 +154,46 @@ class _RadarScreenState extends State<RadarScreen> {
             ),
 
             // Server Users (Green)
-            ..._serverUsers.map((user) {
-              return Positioned(
-                top: 150,
-                child: _buildUserAvatar(user.name, user.photoUrl, Colors.greenAccent),
-              );
-            }),
+            Positioned(
+              top: 150,
+              height: 120,
+              width: MediaQuery.of(context).size.width,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: _serverUsers.length,
+                itemBuilder: (context, index) {
+                  final user = _serverUsers[index];
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                    child: _buildUserAvatar(user.name, user.photoUrl, Colors.greenAccent),
+                  );
+                },
+              ),
+            ),
 
             // BLE Devices (Blue)
-            ..._bleDevices.map((device) {
-              return Positioned(
-                bottom: 150, 
-                child: _buildUserAvatar(
-                  device.device.platformName.isEmpty ? "Unknown ID" : device.device.platformName, 
-                  "https://ui-avatars.com/api/?name=B&background=0D8ABC&color=fff", 
-                  Colors.blueAccent
-                ),
-              );
-            }),
+            Positioned(
+              bottom: 150,
+              height: 120,
+              width: MediaQuery.of(context).size.width,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: _bleDevices.length,
+                itemBuilder: (context, index) {
+                  final device = _bleDevices[index];
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                    child: _buildUserAvatar(
+                      device.device.platformName.isEmpty
+                          ? "Unknown ID"
+                          : device.device.platformName,
+                      "https://ui-avatars.com/api/?name=B&background=0D8ABC&color=fff",
+                      Colors.blueAccent,
+                    ),
+                  );
+                },
+              ),
+            ),
           ],
         ),
       ),
