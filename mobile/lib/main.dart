@@ -2,9 +2,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:flutter_blue_plus/flutter_blue_plus.dart'; // 👈 BLE
+import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'api_service.dart';
-import 'ble_service.dart'; // 👈 Наш сервис
+import 'ble_service.dart';
 
 void main() {
   runApp(const MyApp());
@@ -36,10 +36,10 @@ class RadarScreen extends StatefulWidget {
 
 class _RadarScreenState extends State<RadarScreen> {
   final ApiService _api = ApiService();
-  final BleService _ble = BleService(); // 👈
+  final BleService _ble = BleService();
   
   List<User> _serverUsers = [];
-  List<ScanResult> _bleDevices = []; // 👈 Найденные по Bluetooth
+  List<ScanResult> _bleDevices = [];
   
   bool _isScanning = true;
   Timer? _timer;
@@ -52,16 +52,42 @@ class _RadarScreenState extends State<RadarScreen> {
   }
 
   void _initRadar() {
-    // 1. СРАЗУ запускаем GPS-цикл (Интернет-радар)
-    // Теперь он не ждет Bluetooth и работает всегда!
+    // 1. СРАЗУ запускаем GPS (не ждем блютуз)
     _startGpsCycle();
 
-    // 2. И только потом пробуем запустить Bluetooth (в фоновом режиме)
+    // 2. Пытаемся запустить BLE в фоне
     _initBle();
+  }
+
+  // 🔥 ВОТ ЭТА ФУНКЦИЯ, КОТОРАЯ ПОТЕРЯЛАСЬ
+  void _startGpsCycle() {
+    _timer = Timer.periodic(const Duration(seconds: 5), (timer) async {
+      if (!_isScanning) return;
+      try {
+        Position position = await _determinePosition();
+        if (mounted) {
+           setState(() => _statusMessage = "GPS Active: ${position.latitude.toStringAsFixed(4)}, ${position.longitude.toStringAsFixed(4)}");
+        }
+        
+        // Отправляем на сервер
+        final users = await _api.scanRadar(1, position.latitude, position.longitude);
+        if (mounted) setState(() => _serverUsers = users);
+        
+        // Перезапускаем скан BLE для свежести данных (если он доступен)
+        if (!timer.tick.isEven) { 
+           _ble.stopScan();
+           _ble.startScan();
+        }
+
+      } catch (e) {
+        print("GPS Error: $e");
+      }
+    });
   }
 
   Future<void> _initBle() async {
     try {
+      // Инициализируем, но не блокируем работу, если юзер отказал
       bool bleReady = await _ble.init();
       if (bleReady) {
         _ble.startScan();
@@ -74,12 +100,11 @@ class _RadarScreenState extends State<RadarScreen> {
         });
       }
     } catch (e) {
-      print("Bluetooth init failed (it's okay): $e");
+      print("BLE init error: $e");
     }
   }
 
   Future<Position> _determinePosition() async {
-    // (Код GPS остался тем же, сократил для краткости)
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) return Future.error('Disabled');
     LocationPermission permission = await Geolocator.checkPermission();
@@ -99,7 +124,6 @@ class _RadarScreenState extends State<RadarScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Объединяем списки: Серверные юзеры + BLE устройства
     int totalFound = _serverUsers.length + _bleDevices.length;
 
     return Scaffold(
@@ -107,7 +131,7 @@ class _RadarScreenState extends State<RadarScreen> {
         child: Stack(
           alignment: Alignment.center,
           children: [
-             // Радар (круги)
+             // Анимация радара
             if (_isScanning)
             ...List.generate(3, (index) {
               return Container(
@@ -118,19 +142,18 @@ class _RadarScreenState extends State<RadarScreen> {
 
             const Icon(Icons.location_on, color: Colors.white, size: 50),
 
+            // Статус
             Positioned(
               top: 50,
               child: Column(
                 children: [
                   Text(_statusMessage, style: const TextStyle(color: Colors.white54, fontSize: 10)),
                   Text("Found: $totalFound", style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white)),
-                  if (_bleDevices.isNotEmpty) 
-                    Text("(${_bleDevices.length} via Bluetooth)", style: const TextStyle(color: Colors.blueAccent, fontSize: 12)),
                 ],
               ),
             ),
 
-            // 1. Отрисовка пользователей с СЕРВЕРА (Зеленые)
+            // Server Users (Green)
             ..._serverUsers.map((user) {
               return Positioned(
                 top: 150,
@@ -138,14 +161,13 @@ class _RadarScreenState extends State<RadarScreen> {
               );
             }),
 
-            // 2. Отрисовка BLUETOOTH устройств (Синие)
-            // Смещаем их чуть ниже, чтобы не накладывались
+            // BLE Devices (Blue)
             ..._bleDevices.map((device) {
               return Positioned(
                 bottom: 150, 
                 child: _buildUserAvatar(
                   device.device.platformName.isEmpty ? "Unknown ID" : device.device.platformName, 
-                  "https://ui-avatars.com/api/?name=B&background=0D8ABC&color=fff", // Заглушка аватарки
+                  "https://ui-avatars.com/api/?name=B&background=0D8ABC&color=fff", 
                   Colors.blueAccent
                 ),
               );
