@@ -4,8 +4,8 @@ import (
 	"log"
 	"time"
 
-	"github.com/dazaran/MatchRadar/backend/internal/handlers"
-	"github.com/dazaran/MatchRadar/backend/internal/models"
+	"github.com/dazaran/Glitch/backend/internal/handlers"
+	"github.com/dazaran/Glitch/backend/internal/models"
 	"github.com/gin-gonic/gin"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -67,7 +67,7 @@ func main() {
 
 	api := r.Group("/api/v1")
 	{
-		api.POST("/radar", radarHandler.UpdateAndSearch)
+		api.POST("/update-location", radarHandler.UpdateAndSearch)
 	}
 
 	r.Run(":8080")

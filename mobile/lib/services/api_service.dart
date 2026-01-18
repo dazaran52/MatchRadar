@@ -35,7 +35,7 @@ class ApiService {
   Future<List<User>> scanRadar(int myId, double lat, double lng) async {
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/radar'), // Обрати внимание на слэш перед $
+        Uri.parse('$baseUrl/update-location'), // Обрати внимание на слэш перед $
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
           "user_id": myId,

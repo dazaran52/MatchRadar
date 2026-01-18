@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
-import 'api_service.dart';
-import 'ble_service.dart';
+import 'services/api_service.dart';
+import 'services/ble_service.dart';
 
 void main() {
   runApp(const MyApp());
@@ -16,7 +16,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'MatchRadar',
+      title: 'Glitch',
       debugShowCheckedModeBanner: false,
       theme: ThemeData.dark().copyWith(
         scaffoldBackgroundColor: Colors.black,

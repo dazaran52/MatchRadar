@@ -4,7 +4,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/dazaran/MatchRadar/backend/internal/models"
+	"github.com/dazaran/Glitch/backend/internal/models"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
