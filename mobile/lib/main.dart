@@ -1,24 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'providers/auth_provider.dart';
 import 'providers/match_provider.dart';
 import 'ui/screens/login_screen.dart';
-import 'ui/screens/onboarding_screen.dart';
+import 'ui/screens/intro_screen.dart';
 import 'ui/screens/swipe_screen.dart';
 import 'utils/app_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  // Try to init Firebase. If missing config, catch error and proceed mock-style
-  try {
-    await Firebase.initializeApp();
-  } catch (e) {
-    print("⚠️ Firebase Init Skipped (Missing google-services.json?): $e");
-  }
-
   runApp(const GlitchApp());
 }
 
@@ -52,22 +43,26 @@ class AuthWrapper extends StatefulWidget {
 }
 
 class _AuthWrapperState extends State<AuthWrapper> {
-  bool _permissionsGranted = false;
+  bool _introFinished = false;
 
   @override
   Widget build(BuildContext context) {
     final auth = Provider.of<AuthProvider>(context);
 
+    // 1. Check Auth
     if (!auth.isAuthenticated) {
       return const LoginScreen();
     }
 
-    if (!_permissionsGranted) {
-      return OnboardingScreen(onFinish: () {
-        setState(() => _permissionsGranted = true);
+    // 2. Check Onboarding/Permissions
+    // In a real app we would check SharedPreferences if intro was seen
+    if (!_introFinished) {
+      return IntroScreen(onFinish: () {
+        setState(() => _introFinished = true);
       });
     }
 
+    // 3. Main App
     return const SwipeScreen();
   }
 }

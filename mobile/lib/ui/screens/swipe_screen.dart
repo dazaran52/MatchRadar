@@ -4,9 +4,11 @@ import 'package:flutter_card_swiper/flutter_card_swiper.dart';
 import 'package:provider/provider.dart';
 import 'package:geolocator/geolocator.dart';
 import '../../providers/match_provider.dart';
+import '../../providers/auth_provider.dart';
 import '../../utils/app_theme.dart';
 import '../widgets/match_card.dart';
 import '../widgets/pulse_background.dart';
+import 'radar_screen.dart';
 
 class SwipeScreen extends StatefulWidget {
   const SwipeScreen({super.key});
@@ -27,9 +29,12 @@ class _SwipeScreenState extends State<SwipeScreen> {
   void _loadData() async {
     try {
       Position pos = await Geolocator.getCurrentPosition();
-      // Using ID 1 as mock "Me"
+      final myId = Provider.of<AuthProvider>(context, listen: false).userId ?? 0;
+
       // ignore: use_build_context_synchronously
-      Provider.of<MatchProvider>(context, listen: false).fetchUsers(pos.latitude, pos.longitude, 1);
+      if (mounted) {
+         Provider.of<MatchProvider>(context, listen: false).fetchUsers(pos.latitude, pos.longitude, myId);
+      }
     } catch (e) {
       print("Loc Error: $e");
     }
@@ -38,9 +43,23 @@ class _SwipeScreenState extends State<SwipeScreen> {
   @override
   Widget build(BuildContext context) {
     final matchProv = Provider.of<MatchProvider>(context);
+    final authProv = Provider.of<AuthProvider>(context, listen: false);
     final users = matchProv.nearbyUsers;
 
     return Scaffold(
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.radar, color: Colors.white, size: 30),
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RadarScreen())),
+            tooltip: "Switch to Radar",
+          ),
+          const SizedBox(width: 10),
+        ],
+      ),
       body: Stack(
         children: [
           // Background
@@ -60,8 +79,8 @@ class _SwipeScreenState extends State<SwipeScreen> {
                   cardsCount: users.length,
                   onSwipe: (prevIndex, currentIndex, direction) {
                      if (direction == CardSwiperDirection.right) {
-                       // Like
-                       matchProv.swipeRight(1, users[prevIndex].id);
+                       // Like using real ID
+                       matchProv.swipeRight(authProv.userId ?? 0, users[prevIndex].id);
                      }
                      return true;
                   },
