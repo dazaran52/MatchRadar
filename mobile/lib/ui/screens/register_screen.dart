@@ -3,16 +3,16 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../utils/app_theme.dart';
-import 'register_screen.dart';
 
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+class RegisterScreen extends StatefulWidget {
+  const RegisterScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  State<RegisterScreen> createState() => _RegisterScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _RegisterScreenState extends State<RegisterScreen> {
+  final _nameCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
 
@@ -21,6 +21,12 @@ class _LoginScreenState extends State<LoginScreen> {
     final auth = Provider.of<AuthProvider>(context);
 
     return Scaffold(
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: const BackButton(color: Colors.white),
+      ),
       body: Stack(
         children: [
           Container(decoration: const BoxDecoration(gradient: AppTheme.bgGradient)),
@@ -30,12 +36,11 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.bolt, size: 80, color: Colors.white).animate().fadeIn().scale(),
-                  const SizedBox(height: 20),
-                  Text("GLITCH", style: AppTheme.titleStyle.copyWith(letterSpacing: 5, fontSize: 32)),
+                  Text("CREATE ACCOUNT", style: AppTheme.titleStyle.copyWith(fontSize: 28)).animate().fadeIn(),
+                  const SizedBox(height: 10),
+                  const Text("Join the network.", style: TextStyle(color: Colors.white54)).animate().fadeIn(delay: 200.ms),
                   const SizedBox(height: 50),
 
-                  // Glass Card
                   Container(
                     padding: const EdgeInsets.all(25),
                     decoration: BoxDecoration(
@@ -45,6 +50,12 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     child: Column(
                       children: [
+                         TextField(
+                          controller: _nameCtrl,
+                          style: const TextStyle(color: Colors.white),
+                          decoration: _inputDec("Full Name", Icons.person_outline),
+                        ),
+                        const SizedBox(height: 20),
                         TextField(
                           controller: _emailCtrl,
                           style: const TextStyle(color: Colors.white),
@@ -66,9 +77,11 @@ class _LoginScreenState extends State<LoginScreen> {
                             width: double.infinity,
                             child: ElevatedButton(
                               onPressed: () async {
-                                bool success = await auth.signIn(_emailCtrl.text, _passCtrl.text);
-                                if (!success) {
-                                   if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Invalid Credentials")));
+                                bool success = await auth.signUp(_emailCtrl.text, _passCtrl.text, _nameCtrl.text);
+                                if (success) {
+                                   if (mounted) Navigator.pop(context); // Go back to login or auto-login
+                                } else {
+                                   if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Registration Failed")));
                                 }
                               },
                               style: ElevatedButton.styleFrom(
@@ -76,26 +89,12 @@ class _LoginScreenState extends State<LoginScreen> {
                                 padding: const EdgeInsets.symmetric(vertical: 16),
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                               ),
-                              child: const Text("LOG IN", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                              child: const Text("SIGN UP", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                             ),
                           ),
                       ],
                     ),
                   ).animate().slideY(begin: 0.3, duration: 600.ms, curve: Curves.easeOutBack),
-
-                  const SizedBox(height: 30),
-                  TextButton(
-                    onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RegisterScreen())),
-                    child: RichText(
-                      text: const TextSpan(
-                        text: "Don't have an account? ",
-                        style: TextStyle(color: Colors.white54),
-                        children: [
-                          TextSpan(text: "Sign Up", style: TextStyle(color: AppTheme.primaryPink, fontWeight: FontWeight.bold)),
-                        ],
-                      ),
-                    ),
-                  ),
                 ],
               ),
             ),

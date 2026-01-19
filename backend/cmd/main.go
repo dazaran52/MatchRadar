@@ -61,12 +61,15 @@ func CORSMiddleware() gin.HandlerFunc {
 func main() {
 	db := InitDB()
 	radarHandler := &handlers.RadarHandler{DB: db}
+	authHandler := &handlers.AuthHandler{DB: db}
 
 	r := gin.Default()
 	r.Use(CORSMiddleware()) // 👈 Включаем защиту от паранойи браузера
 
 	api := r.Group("/api/v1")
 	{
+		api.POST("/register", authHandler.Register)
+		api.POST("/login", authHandler.Login)
 		api.POST("/update-location", radarHandler.UpdateAndSearch)
 		api.POST("/like", radarHandler.LikeUser)
 	}
