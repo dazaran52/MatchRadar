@@ -12,8 +12,6 @@ type User struct {
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 
 	Name      string `json:"name"`
-	Email     string `gorm:"uniqueIndex" json:"email"`
-	Password  string `json:"-"` // Hash, don't return in JSON
 	PhotoURL  string `json:"photo_url"`
 	
 	// Это уникальный ID, который телефон будет "кричать" через Bluetooth.
