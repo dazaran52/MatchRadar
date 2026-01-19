@@ -59,5 +59,11 @@ class AppTheme {
       bodyMedium: bodyStyle,
       titleLarge: titleStyle,
     ),
+    snackBarTheme: SnackBarThemeData(
+      backgroundColor: Colors.grey[900],
+      contentTextStyle: const TextStyle(color: Colors.white),
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+    ),
   );
 }

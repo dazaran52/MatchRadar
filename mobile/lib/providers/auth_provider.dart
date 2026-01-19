@@ -51,24 +51,26 @@ class AuthProvider with ChangeNotifier {
     _isLoading = true;
     notifyListeners();
 
-    final data = await _authService.login(email, password);
+    try {
+      final data = await _authService.login(email, password);
 
-    _isLoading = false;
-    if (data != null) {
-      _user = User.fromJson(data['user']);
-      _userId = _user!.id;
+      if (data != null) {
+        _user = User.fromJson(data['user']);
+        _userId = _user!.id;
+
+        final prefs = await SharedPreferences.getInstance();
+        final userData = jsonEncode({
+          'id': _user!.id,
+          'name': _user!.name,
+          'photoUrl': _user!.photoUrl,
+        });
+        prefs.setString('userData', userData);
+        return true;
+      }
+    } finally {
+      _isLoading = false;
       notifyListeners();
-
-      final prefs = await SharedPreferences.getInstance();
-      final userData = jsonEncode({
-        'id': _user!.id,
-        'name': _user!.name,
-        'photoUrl': _user!.photoUrl,
-      });
-      prefs.setString('userData', userData);
-      return true;
     }
-    notifyListeners();
     return false;
   }
 
@@ -76,24 +78,26 @@ class AuthProvider with ChangeNotifier {
     _isLoading = true;
     notifyListeners();
 
-    final data = await _authService.register(name, email, password);
+    try {
+      final data = await _authService.register(name, email, password);
 
-    _isLoading = false;
-    if (data != null) {
-      _user = User.fromJson(data['user']);
-      _userId = _user!.id;
+      if (data != null) {
+        _user = User.fromJson(data['user']);
+        _userId = _user!.id;
+
+        final prefs = await SharedPreferences.getInstance();
+        final userData = jsonEncode({
+          'id': _user!.id,
+          'name': _user!.name,
+          'photoUrl': _user!.photoUrl,
+        });
+        prefs.setString('userData', userData);
+        return true;
+      }
+    } finally {
+      _isLoading = false;
       notifyListeners();
-
-      final prefs = await SharedPreferences.getInstance();
-      final userData = jsonEncode({
-        'id': _user!.id,
-        'name': _user!.name,
-        'photoUrl': _user!.photoUrl,
-      });
-      prefs.setString('userData', userData);
-      return true;
     }
-    notifyListeners();
     return false;
   }
 
