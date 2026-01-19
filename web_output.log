@@ -1,0 +1,13 @@
+Starting project at /app/glitch-app
+Starting Metro Bundler
+Waiting on http://localhost:8081
+Logs for your project will appear below.
+Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+λ Bundled 2441ms node_modules/expo-router/node/render.js (1136 modules)
+Web Bundled 3247ms node_modules/expo-router/entry.js (1183 modules)
+Web node_modules/expo-router/entry.js ▓▓▓▓░░░░░░░░░░░░ 25.0% ( 5/10)
+Web node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓░░░░░░░ 56.3% (279/449)
+Web node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓▓▓░░░░░ 70.0% (651/779)
+Web node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓▓▓▓▓▓░░ 87.7% (930/993)
+Web Bundled 12246ms node_modules/expo-router/entry.js (1183 modules)
+ LOG  [web] Logs will appear in the browser console
