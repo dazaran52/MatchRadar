@@ -5,6 +5,7 @@ import '../../providers/auth_provider.dart';
 import '../../utils/app_theme.dart';
 import '../widgets/animated_gradient_bg.dart';
 import '../widgets/glitch_title.dart';
+import '../widgets/social_login_row.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -89,26 +90,21 @@ class _LoginScreenState extends State<LoginScreen> {
 
                   const SizedBox(height: 20),
                   // Social Login UI
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      _socialBtn(Icons.apple, "Apple", () {}),
-                      const SizedBox(width: 20),
-                      _socialBtn(Icons.g_mobiledata, "Google", () {}),
-                    ],
-                  ),
+                  const SocialLoginRow(),
 
-                  const SizedBox(height: 30),
-                  TextButton(
+                  const SizedBox(height: 40),
+
+                  // New "Create Account" Button
+                  OutlinedButton(
                     onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RegisterScreen())),
-                    child: RichText(
-                      text: const TextSpan(
-                        text: "Don't have an account? ",
-                        style: TextStyle(color: Colors.white54),
-                        children: [
-                          TextSpan(text: "Sign Up", style: TextStyle(color: AppTheme.primaryPink, fontWeight: FontWeight.bold)),
-                        ],
-                      ),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: AppTheme.primaryPink, width: 2),
+                      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                    ),
+                    child: const Text(
+                      "CREATE ACCOUNT",
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, letterSpacing: 1.2),
                     ),
                   ),
                 ],
@@ -116,23 +112,6 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _socialBtn(IconData icon, String label, VoidCallback onTap) {
-    return InkWell(
-      onTap: () {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("$label Login coming soon!")));
-      },
-      child: Container(
-        width: 50, height: 50,
-        decoration: BoxDecoration(
-          color: Colors.white10,
-          shape: BoxShape.circle,
-          border: Border.all(color: Colors.white24)
-        ),
-        child: Icon(icon, color: Colors.white),
       ),
     );
   }

@@ -3,6 +3,9 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../utils/app_theme.dart';
+import '../widgets/animated_gradient_bg.dart';
+import '../widgets/glitch_title.dart';
+import '../widgets/social_login_row.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -29,17 +32,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
       ),
       body: Stack(
         children: [
-          Container(decoration: const BoxDecoration(gradient: AppTheme.bgGradient)),
+          const AnimatedGradientBackground(),
           Center(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(30),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text("CREATE ACCOUNT", style: AppTheme.titleStyle.copyWith(fontSize: 28)).animate().fadeIn(),
+                  const GlitchTitle(),
                   const SizedBox(height: 10),
-                  const Text("Join the network.", style: TextStyle(color: Colors.white54)).animate().fadeIn(delay: 200.ms),
-                  const SizedBox(height: 50),
+                  const Text("Join the network.", style: TextStyle(color: Colors.white54, letterSpacing: 1.5)).animate().fadeIn(delay: 200.ms),
+                  const SizedBox(height: 40),
 
                   Container(
                     padding: const EdgeInsets.all(25),
@@ -87,14 +90,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: AppTheme.primaryPurple,
                                 padding: const EdgeInsets.symmetric(vertical: 16),
+                                shadowColor: AppTheme.primaryPink,
+                                elevation: 8,
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                               ),
-                              child: const Text("SIGN UP", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                              child: const Text("SIGN UP", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, letterSpacing: 1.5)),
                             ),
                           ),
                       ],
                     ),
                   ).animate().slideY(begin: 0.3, duration: 600.ms, curve: Curves.easeOutBack),
+
+                  const SizedBox(height: 30),
+                  const SocialLoginRow(),
                 ],
               ),
             ),

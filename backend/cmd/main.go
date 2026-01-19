@@ -2,9 +2,11 @@ package main
 
 import (
 	"log"
+	"os"
 	"time"
 
 	"github.com/dazaran/Glitch/backend/internal/handlers"
+	"github.com/dazaran/Glitch/backend/internal/middleware"
 	"github.com/dazaran/Glitch/backend/internal/models"
 	"github.com/gin-gonic/gin"
 	"gorm.io/driver/postgres"
@@ -12,7 +14,11 @@ import (
 )
 
 func InitDB() *gorm.DB {
-	dsn := "host=localhost user=dazaran password=secretpassword dbname=radar_core port=5432 sslmode=disable"
+	dsn := os.Getenv("DATABASE_URL")
+	if dsn == "" {
+		// Fallback for local testing if env not set, but ideally should always be env
+		dsn = "postgresql://neondb_owner:npg_xm9Q4kjOBXGR@ep-holy-violet-agv7k5cl-pooler.c-2.eu-central-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
+	}
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		log.Fatal("❌ DB Connection failed:", err)
@@ -79,10 +85,17 @@ func main() {
 
 	api := r.Group("/api/v1")
 	{
+		// Public endpoints
 		api.POST("/register", authHandler.Register)
 		api.POST("/login", authHandler.Login)
-		api.POST("/update-location", radarHandler.UpdateAndSearch)
-		api.POST("/like", radarHandler.LikeUser)
+
+		// Protected endpoints
+		protected := api.Group("/")
+		protected.Use(middleware.AuthMiddleware())
+		{
+			protected.POST("/update-location", radarHandler.UpdateAndSearch)
+			protected.POST("/like", radarHandler.LikeUser)
+		}
 	}
 
 	r.Run(":8080")
