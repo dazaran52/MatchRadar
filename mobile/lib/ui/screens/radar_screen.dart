@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
@@ -6,11 +7,10 @@ import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 
 import '../../services/api_service.dart';
 import '../../services/ble_service.dart';
-import '../widgets/background_grid.dart';
-import '../widgets/cyber_scanner.dart';
-import '../widgets/glitch_avatar.dart';
-import '../widgets/terminal_panel.dart';
-import '../../utils/glitch_theme.dart';
+import '../widgets/pulse_background.dart';
+import '../widgets/user_avatar_bubble.dart';
+import '../widgets/profile_card.dart';
+import '../../utils/app_theme.dart';
 
 class RadarScreen extends StatefulWidget {
   const RadarScreen({super.key});
@@ -23,18 +23,16 @@ class _RadarScreenState extends State<RadarScreen> {
   final ApiService _api = ApiService();
   final BleService _ble = BleService();
 
-  List<User> _serverUsers = [];
-  List<ScanResult> _bleDevices = [];
+  List<User> _apiUsers = [];
+  List<User> _bleUsers = [];
+  User? _selectedUser;
 
   bool _isScanning = true;
   Timer? _timer;
-  String _statusLog = "SYSTEM INITIALIZED...";
 
   @override
   void initState() {
     super.initState();
-    // Hide Status Bar
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     _initRadar();
   }
 
@@ -47,30 +45,21 @@ class _RadarScreenState extends State<RadarScreen> {
     _timer = Timer.periodic(const Duration(seconds: 5), (timer) async {
       if (!_isScanning) return;
       try {
-        _log("ACQUIRING GPS LOCK...");
         Position position = await _determinePosition();
-
-        _log("GPS LOCK: ${position.latitude.toStringAsFixed(4)}, ${position.longitude.toStringAsFixed(4)}");
-
         final users = await _api.scanRadar(1, position.latitude, position.longitude);
         if (mounted) {
            setState(() {
-             _serverUsers = users;
-             if (users.isNotEmpty) _log("TARGETS DETECTED: ${users.length}");
+             _apiUsers = users;
            });
-
-           // Simple Haptic Feedback on found
-           if (users.isNotEmpty) HapticFeedback.mediumImpact();
         }
 
-        // BLE Refresh
         if (!timer.tick.isEven) {
            _ble.stopScan();
            _ble.startScan();
         }
 
       } catch (e) {
-        _log("GPS ERROR: $e");
+        // Silent error
       }
     });
   }
@@ -82,23 +71,23 @@ class _RadarScreenState extends State<RadarScreen> {
         _ble.startScan();
         _ble.scanResults.listen((results) {
           if (mounted) {
+            // Convert BLE results to User objects
+            List<User> scannedBleUsers = results.map((r) => User(
+              id: 0, // 0 for BLE users
+              name: r.device.platformName.isNotEmpty ? r.device.platformName : "Nearby Device",
+              photoUrl: "https://ui-avatars.com/api/?name=${r.device.remoteId}&background=random",
+              latitude: 0, longitude: 0
+            )).toList();
+
             setState(() {
-              if (results.length > _bleDevices.length) {
-                 HapticFeedback.heavyImpact();
-                 _log("NEW BLE SIGNAL INTERCEPTED");
-              }
-              _bleDevices = results;
+              _bleUsers = scannedBleUsers;
             });
           }
         });
       }
     } catch (e) {
-      _log("BLE INIT ERROR: $e");
+      // Silent error
     }
-  }
-
-  void _log(String msg) {
-    if (mounted) setState(() => _statusLog = ">> ${msg.toUpperCase()}");
   }
 
   Future<Position> _determinePosition() async {
@@ -116,81 +105,94 @@ class _RadarScreenState extends State<RadarScreen> {
   void dispose() {
     _timer?.cancel();
     _ble.stopScan();
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    // Combine users for the terminal
-    List<User> allUsers = [..._serverUsers];
-    // Map BLE to dummy User objects for display consistency
-    for (var b in _bleDevices) {
-      allUsers.add(User(
-        id: 0,
-        name: b.device.platformName.isNotEmpty ? b.device.platformName : "UNKNOWN SIGNAL",
-        photoUrl: "",
-        latitude: 0, longitude: 0
-      ));
-    }
-
     return Scaffold(
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        centerTitle: true,
+        title: Text("Glitch", style: AppTheme.titleStyle),
+        actions: [
+          IconButton(
+            icon: Icon(_isScanning ? Icons.pause_circle_filled : Icons.play_circle_fill),
+            color: Colors.white,
+            iconSize: 30,
+            onPressed: () => setState(() => _isScanning = !_isScanning),
+          )
+        ],
+      ),
       body: Stack(
         children: [
-          // 1. Digital Background
-          const BackgroundGrid(),
+          // 1. Background
+          const PulseBackground(),
 
-          // 2. Scanner Animation
-          CyberScanner(isScanning: _isScanning),
+          // 2. People (Scattered for effect)
+          // In a real app, we would map these to relative coordinates.
+          // Here we use a LayoutBuilder to scatter them randomly but deterministically based on ID.
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final center = Offset(constraints.maxWidth / 2, constraints.maxHeight / 2);
 
-          // 3. Header / Log
+              final allUsers = [..._apiUsers, ..._bleUsers];
+
+              return Stack(
+                children: allUsers.map((user) {
+                  // Pseudo-random position based on Name to keep it stable for BLE users (id=0)
+                  final r = Random(user.id > 0 ? user.id : user.name.hashCode);
+                  final angle = r.nextDouble() * 2 * pi;
+                  final radius = 50.0 + r.nextDouble() * 150.0; // Distance from center
+
+                  final dx = center.dx + cos(angle) * radius - 40; // -40 for avatar radius
+                  final dy = center.dy + sin(angle) * radius - 40;
+
+                  return Positioned(
+                    left: dx,
+                    top: dy,
+                    child: UserAvatarBubble(
+                      url: user.photoUrl,
+                      isOnline: true,
+                      onTap: () => setState(() => _selectedUser = user),
+                    ),
+                  );
+                }).toList(),
+              );
+            }
+          ),
+
+          // 3. Status Pill
           Positioned(
-            top: 40, left: 20, right: 20,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text("GLITCH RADAR v2.0", style: GlitchTheme.headerStyle),
-                Text(_statusLog, style: GlitchTheme.terminalStyle.copyWith(color: GlitchTheme.neonRed)),
-              ],
+            bottom: 40, left: 0, right: 0,
+            child: Center(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.black26,
+                  borderRadius: BorderRadius.circular(30),
+                  border: Border.all(color: Colors.white10),
+                ),
+                child: Text(
+                  "${_apiUsers.length + _bleUsers.length} people nearby",
+                  style: AppTheme.bodyStyle.copyWith(color: Colors.white),
+                ),
+              ),
             ),
           ),
 
-          // 4. GPS Matches (Server)
-          ..._serverUsers.map((user) {
-             // Randomize position slightly for visual interest (mock) or use real logic to map coords to screen
-             // For this visual overhaul, we'll stack them for now or use fixed relative offsets.
-             // In a real AR view, we'd map lat/lng to screen x/y.
-             // We'll simulate it by putting them in a fixed pattern.
-             return Align(
-               alignment: const Alignment(0, -0.3),
-               child: GlitchAvatar(name: user.name, url: user.photoUrl, isBle: false),
-             );
-          }),
-
-          // 5. BLE Matches
-          ..._bleDevices.map((device) {
-             return Align(
-               alignment: const Alignment(0, 0.3),
-               child: GlitchAvatar(
-                 name: device.device.platformName,
-                 url: "https://ui-avatars.com/api/?name=${device.device.remoteId}&background=00F0FF&color=000",
-                 isBle: true
-               ),
-             );
-          }),
-
-          // 6. Terminal Bottom Sheet
-          TerminalPanel(users: allUsers),
-
-          // 7. Toggle Button
-          Positioned(
-            bottom: 20, right: 20,
-            child: FloatingActionButton(
-              backgroundColor: _isScanning ? GlitchTheme.neonRed : Colors.grey,
-              onPressed: () => setState(() => _isScanning = !_isScanning),
-              child: Icon(_isScanning ? Icons.stop : Icons.power_settings_new),
+          // 4. Selected User Card Overlay
+          if (_selectedUser != null)
+            Container(
+              color: Colors.black54,
+              alignment: Alignment.center,
+              child: ProfileCard(
+                user: _selectedUser!,
+                onClose: () => setState(() => _selectedUser = null),
+              ),
             ),
-          ),
         ],
       ),
     );

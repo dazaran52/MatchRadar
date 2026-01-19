@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'ui/screens/radar_screen.dart';
-import 'utils/glitch_theme.dart';
+import 'utils/app_theme.dart';
 
 void main() {
   // Делаем статус-бар прозрачным для полного погружения
@@ -17,6 +17,9 @@ class GlitchApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Set status bar to light (white icons) for dark background
+    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.light);
+
     return MaterialApp(
       title: 'Glitch',
       debugShowCheckedModeBanner: false,
