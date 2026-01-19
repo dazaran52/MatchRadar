@@ -12,7 +12,7 @@ import (
 )
 
 func InitDB() *gorm.DB {
-	dsn := "host=localhost user=dazaran password=secretpassword dbname=radar_core port=5432 sslmode=disable"
+	dsn := "host=localhost user=dazaran password=secretpassword dbname=radar_core port=5433 sslmode=disable"
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		log.Fatal("❌ DB Connection failed:", err)
