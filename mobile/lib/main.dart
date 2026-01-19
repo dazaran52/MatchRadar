@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'ui/screens/radar_screen.dart';
-import 'utils/glitch_theme.dart';
+import 'package:provider/provider.dart';
+import 'providers/auth_provider.dart';
+import 'providers/match_provider.dart';
+import 'ui/screens/login_screen.dart';
+import 'ui/screens/intro_screen.dart';
+import 'ui/screens/swipe_screen.dart';
+import 'utils/app_theme.dart';
 
-void main() {
-  // Делаем статус-бар прозрачным для полного погружения
-  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-    statusBarColor: Colors.transparent,
-    statusBarIconBrightness: Brightness.light,
-  ));
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(const GlitchApp());
 }
 
@@ -17,19 +18,51 @@ class GlitchApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Glitch',
-      debugShowCheckedModeBanner: false,
-      // Подключаем новую тему, если она есть, или ставим темную по дефолту
-      theme: ThemeData.dark().copyWith(
-        scaffoldBackgroundColor: Colors.black,
-        colorScheme: const ColorScheme.dark(
-          primary: Colors.redAccent,
-          secondary: Colors.cyanAccent,
-        ),
+    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.light);
+
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => MatchProvider()),
+      ],
+      child: MaterialApp(
+        title: 'Glitch',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.themeData,
+        home: const AuthWrapper(),
       ),
-      // 👇 Вот он, наш новый экран!
-      home: const RadarScreen(),
     );
+  }
+}
+
+class AuthWrapper extends StatefulWidget {
+  const AuthWrapper({super.key});
+
+  @override
+  State<AuthWrapper> createState() => _AuthWrapperState();
+}
+
+class _AuthWrapperState extends State<AuthWrapper> {
+  bool _introFinished = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final auth = Provider.of<AuthProvider>(context);
+
+    // 1. Check Auth
+    if (!auth.isAuthenticated) {
+      return const LoginScreen();
+    }
+
+    // 2. Check Onboarding/Permissions
+    // In a real app we would check SharedPreferences if intro was seen
+    if (!_introFinished) {
+      return IntroScreen(onFinish: () {
+        setState(() => _introFinished = true);
+      });
+    }
+
+    // 3. Main App
+    return const SwipeScreen();
   }
 }
