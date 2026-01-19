@@ -55,7 +55,7 @@ class _RadarScreenState extends State<RadarScreen> {
 
         if (!timer.tick.isEven) {
            _ble.stopScan();
-           _ble.startScan();
+           await _ble.startScan();
         }
 
       } catch (e) {
