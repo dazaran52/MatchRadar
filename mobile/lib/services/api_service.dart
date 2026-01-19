@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../config.dart';
 
 class User {
   final int id;
@@ -28,14 +29,10 @@ class User {
 }
 
 class ApiService {
-  // Для Flutter Web в Codespaces localhost обычно работает,
-  // но если что - поменяем на публичный URL.
-  static const String baseUrl = "http://localhost:8080/api/v1"; 
-
   Future<List<User>> scanRadar(int myId, double lat, double lng) async {
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/update-location'), // Обрати внимание на слэш перед $
+        Uri.parse('${AppConfig.apiBaseUrl}/update-location'),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
           "user_id": myId,
@@ -55,6 +52,28 @@ class ApiService {
     } catch (e) {
       print("Net Error: $e");
       return [];
+    }
+  }
+
+  Future<bool> likeUser(int fromId, int toId) async {
+    try {
+      final response = await http.post(
+        Uri.parse('${AppConfig.apiBaseUrl}/like'),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "from_user_id": fromId,
+          "to_user_id": toId,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data['match'] == true;
+      }
+      return false;
+    } catch (e) {
+      print("Like Error: $e");
+      return false;
     }
   }
 }
