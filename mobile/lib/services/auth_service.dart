@@ -11,7 +11,7 @@ class AuthService {
         Uri.parse('$_baseUrl/login'),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({"email": email, "password": password}),
-      );
+      ).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
@@ -32,7 +32,7 @@ class AuthService {
           "email": email,
           "password": password
         }),
-      );
+      ).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 201) {
         return jsonDecode(response.body);

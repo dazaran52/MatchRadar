@@ -3,6 +3,8 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../utils/app_theme.dart';
+import '../widgets/animated_gradient_bg.dart';
+import '../widgets/glitch_title.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -23,7 +25,7 @@ class _LoginScreenState extends State<LoginScreen> {
     return Scaffold(
       body: Stack(
         children: [
-          Container(decoration: const BoxDecoration(gradient: AppTheme.bgGradient)),
+          const AnimatedGradientBackground(),
           Center(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(30),
@@ -32,7 +34,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 children: [
                   const Icon(Icons.bolt, size: 80, color: Colors.white).animate().fadeIn().scale(),
                   const SizedBox(height: 20),
-                  Text("GLITCH", style: AppTheme.titleStyle.copyWith(letterSpacing: 5, fontSize: 32)),
+                  const GlitchTitle(),
                   const SizedBox(height: 50),
 
                   // Glass Card
@@ -68,20 +70,33 @@ class _LoginScreenState extends State<LoginScreen> {
                               onPressed: () async {
                                 bool success = await auth.signIn(_emailCtrl.text, _passCtrl.text);
                                 if (!success) {
-                                   if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Invalid Credentials")));
+                                   if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Login Failed. Check connection.")));
                                 }
                               },
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: AppTheme.primaryPurple,
                                 padding: const EdgeInsets.symmetric(vertical: 16),
+                                shadowColor: AppTheme.primaryPink,
+                                elevation: 8,
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                               ),
-                              child: const Text("LOG IN", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                              child: const Text("LOG IN", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, letterSpacing: 1.5)),
                             ),
                           ),
                       ],
                     ),
                   ).animate().slideY(begin: 0.3, duration: 600.ms, curve: Curves.easeOutBack),
+
+                  const SizedBox(height: 20),
+                  // Social Login UI
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      _socialBtn(Icons.apple, "Apple", () {}),
+                      const SizedBox(width: 20),
+                      _socialBtn(Icons.g_mobiledata, "Google", () {}),
+                    ],
+                  ),
 
                   const SizedBox(height: 30),
                   TextButton(
@@ -101,6 +116,23 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _socialBtn(IconData icon, String label, VoidCallback onTap) {
+    return InkWell(
+      onTap: () {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("$label Login coming soon!")));
+      },
+      child: Container(
+        width: 50, height: 50,
+        decoration: BoxDecoration(
+          color: Colors.white10,
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.white24)
+        ),
+        child: Icon(icon, color: Colors.white),
       ),
     );
   }
