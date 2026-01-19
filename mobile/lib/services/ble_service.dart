@@ -41,7 +41,7 @@ class BleService {
   }
 
   // 2. Старт сканирования
-  void startScan() async {
+  Future<void> startScan() async {
     if (kIsWeb) return;
 
     print("🔵 Starting BLE Scan...");
