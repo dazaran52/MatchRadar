@@ -2,9 +2,11 @@ package main
 
 import (
 	"log"
+	"os"
 	"time"
 
 	"github.com/dazaran/Glitch/backend/internal/handlers"
+	"github.com/dazaran/Glitch/backend/internal/middleware"
 	"github.com/dazaran/Glitch/backend/internal/models"
 	"github.com/gin-gonic/gin"
 	"gorm.io/driver/postgres"
@@ -79,10 +81,17 @@ func main() {
 
 	api := r.Group("/api/v1")
 	{
+		// Public endpoints
 		api.POST("/register", authHandler.Register)
 		api.POST("/login", authHandler.Login)
-		api.POST("/update-location", radarHandler.UpdateAndSearch)
-		api.POST("/like", radarHandler.LikeUser)
+
+		// Protected endpoints
+		protected := api.Group("/")
+		protected.Use(middleware.AuthMiddleware())
+		{
+			protected.POST("/update-location", radarHandler.UpdateAndSearch)
+			protected.POST("/like", radarHandler.LikeUser)
+		}
 	}
 
 	r.Run(":8080")
