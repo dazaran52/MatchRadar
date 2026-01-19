@@ -72,3 +72,30 @@ func (h *RadarHandler) UpdateAndSearch(c *gin.Context) {
 		"nearby_users": nearbyUsers,
 	})
 }
+
+type LikeRequest struct {
+	FromUserID uint `json:"from_user_id"`
+	ToUserID   uint `json:"to_user_id"`
+}
+
+func (h *RadarHandler) LikeUser(c *gin.Context) {
+	var req LikeRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// In a real app, we would save this to a 'matches' table
+	// and check if the other user also liked 'FromUserID'.
+	// For this prototype, we'll simulate a random match chance or
+	// just always say "false" unless it's a specific test case.
+
+	// Mock Match Logic: If Target ID is even, it's a match!
+	isMatch := (req.ToUserID % 2) == 0
+
+	log.Printf("❤️ User %d liked User %d. Match: %v", req.FromUserID, req.ToUserID, isMatch)
+
+	c.JSON(http.StatusOK, gin.H{
+		"match": isMatch,
+	})
+}

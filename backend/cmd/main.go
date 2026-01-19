@@ -68,6 +68,7 @@ func main() {
 	api := r.Group("/api/v1")
 	{
 		api.POST("/update-location", radarHandler.UpdateAndSearch)
+		api.POST("/like", radarHandler.LikeUser)
 	}
 
 	r.Run(":8080")
