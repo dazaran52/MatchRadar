@@ -15,45 +15,33 @@ class BleService {
   // Поток данных, чтобы UI обновлялся сам
   Stream<List<ScanResult>> get scanResults => FlutterBluePlus.scanResults;
 
-  // 1. Инициализация и запрос прав (ПРИНУДИТЕЛЬНО)
+  // 1. Инициализация и запрос прав
   Future<bool> init() async {
-    if (kIsWeb) return false;
-
-    // Сначала запрашиваем права, не глядя на состояние адаптера
-    if (Platform.isAndroid) {
-       Map<Permission, PermissionStatus> statuses = await [
-        Permission.location,
-        Permission.bluetoothScan,
-        Permission.bluetoothConnect,
-        Permission.bluetoothAdvertise,
-      ].request();
-
-      // Если что-то не дали - возвращаем false, UI должен обработать
-      if (statuses[Permission.location] != PermissionStatus.granted) {
-         print("❌ Location Permission Denied");
-         return false;
-      }
+    if (kIsWeb) {
+      print("⚠️ Bluetooth disabled on Web (Emulator mode)");
+      return false;
     }
 
-    // Теперь проверяем адаптер
+    // Проверяем, включен ли Bluetooth адаптер
     if (await FlutterBluePlus.adapterState.first != BluetoothAdapterState.on) {
       print("❌ Bluetooth is OFF");
-      // В реальном приложении здесь можно попросить включить
-      try {
-        if (Platform.isAndroid) {
-          await FlutterBluePlus.turnOn();
-        }
-      } catch (e) {
-        // Ignored
-      }
       return false;
+    }
+
+    // Запрашиваем права (особенно важно для Android 12+)
+    if (Platform.isAndroid) {
+      await [
+        Permission.bluetoothScan,
+        Permission.bluetoothConnect,
+        Permission.location, // Для старых Android
+      ].request();
     }
     
     return true;
   }
 
   // 2. Старт сканирования
-  Future<void> startScan() async {
+  void startScan() async {
     if (kIsWeb) return;
 
     print("🔵 Starting BLE Scan...");
