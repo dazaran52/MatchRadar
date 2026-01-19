@@ -1,27 +1,20 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
-import 'package:geolocator/geolocator.dart';
-import 'package:flutter_blue_plus/flutter_blue_plus.dart';
-import 'services/api_service.dart';
-import 'services/ble_service.dart';
+import 'ui/screens/radar_screen.dart';
+import 'utils/glitch_theme.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(const GlitchApp());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class GlitchApp extends StatelessWidget {
+  const GlitchApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Glitch',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData.dark().copyWith(
-        scaffoldBackgroundColor: Colors.black,
-        colorScheme: const ColorScheme.dark(primary: Colors.redAccent),
-      ),
+      theme: GlitchTheme.themeData,
       home: const RadarScreen(),
     );
   }
