@@ -23,18 +23,13 @@ class GradientButton extends StatelessWidget {
       width: width ?? double.infinity,
       height: 56,
       decoration: BoxDecoration(
-        gradient: NeonTheme.primaryGradient,
-        borderRadius: BorderRadius.circular(12),
+        gradient: NeonTheme.buttonGradient,
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: NeonTheme.cyberCyan.withOpacity(0.3),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-          BoxShadow(
-            color: NeonTheme.neonMagenta.withOpacity(0.3),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: const Color(0xFF6B11FF).withOpacity(0.4),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
@@ -42,7 +37,7 @@ class GradientButton extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           onTap: isLoading ? null : onTap,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(16),
           child: Center(
             child: isLoading
                 ? const SizedBox(
@@ -61,8 +56,8 @@ class GradientButton extends StatelessWidget {
                         const SizedBox(width: 8),
                       ],
                       Text(
-                        text,
-                        style: NeonTheme.themeData.textTheme.labelLarge,
+                        text.toUpperCase(),
+                        style: NeonTheme.themeData.textTheme.labelLarge?.copyWith(letterSpacing: 1.5),
                       ),
                     ],
                   ),

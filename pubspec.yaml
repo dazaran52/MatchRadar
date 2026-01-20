@@ -1,5 +1,5 @@
-name: neon_glitch_network
-description: A production-ready, high-performance Flutter app prototype with direct PostgreSQL connection.
+name: glitch
+description: A futuristic dating app prototype with direct PostgreSQL connection.
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -13,11 +13,18 @@ dependencies:
   # Core
   postgres: ^3.4.4
   crypto: ^3.0.3
+  shared_preferences: ^2.2.2
+  permission_handler: ^11.0.1
+  google_sign_in: ^6.1.5
 
   # UI & Design
   google_fonts: ^6.2.1
   flutter_animate: ^4.5.0
   glass_kit: ^3.0.0
+  cupertino_icons: ^1.0.6
+  font_awesome_flutter: ^10.5.0
+  flutter_card_swiper: ^7.0.0
+  cached_network_image: ^3.3.0
 
 dev_dependencies:
   flutter_test:
