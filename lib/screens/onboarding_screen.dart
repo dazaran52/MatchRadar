@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../theme/neon_theme.dart';
 import '../widgets/gradient_button.dart';
 import '../widgets/glitch_text.dart';
@@ -19,14 +21,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   final List<Map<String, dynamic>> _pages = [
     {
-      'title': 'WELCOME TO\nTHE GLITCH',
-      'desc': 'You have entered the network. Connect with other rogue signals in your vicinity.',
-      'icon': FontAwesomeIcons.mask,
+      'title': 'WELCOME TO\nGLITCH',
+      'desc': 'The future of dating is here. Connect with signals that match your frequency.',
+      'icon': FontAwesomeIcons.bolt,
     },
     {
       'title': 'LOCATION\nACCESS',
-      'desc': 'We need your coordinates to find nearby matches. Your location is encrypted.',
-      'icon': FontAwesomeIcons.locationArrow,
+      'desc': 'We need your coordinates to find matches in your sector.',
+      'icon': FontAwesomeIcons.locationDot,
       'permission': Permission.location,
     },
     {
@@ -47,18 +49,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     if (perm == null) return;
 
     // Request permission
+    // For Nearby Devices on Android 12+, we need check.
     final status = await perm.request();
 
     if (status.isGranted) {
       _nextPage();
-    } else if (status.isPermanentlyDenied) {
-      openAppSettings();
     } else {
-      // Handle denial
+      // Proceed anyway for prototype
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Permission required to proceed completely.')),
+        const SnackBar(content: Text('Permission skipped for now.')),
       );
-      // Optional: still allow next page? For now, yes, to not block the user in prototype.
       _nextPage();
     }
   }
@@ -74,11 +74,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     }
   }
 
-  void _finishOnboarding() {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => const Dashboard())
-    );
+  Future<void> _finishOnboarding() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('onboarding_complete', true);
+
+    if (mounted) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const Dashboard())
+      );
+    }
   }
 
   @override
@@ -92,7 +97,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               Expanded(
                 child: PageView.builder(
                   controller: _pageCtrl,
-                  physics: const NeverScrollableScrollPhysics(), // Force user to click buttons
+                  physics: const NeverScrollableScrollPhysics(),
                   onPageChanged: (idx) => setState(() => _currentPage = idx),
                   itemCount: _pages.length,
                   itemBuilder: (context, index) {
@@ -102,22 +107,48 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(
-                            page['icon'],
-                            size: 80,
-                            color: NeonTheme.cyberCyan,
-                          ),
+                          Container(
+                            padding: const EdgeInsets.all(30),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.05),
+                              shape: BoxShape.circle,
+                              border: Border.all(color: NeonTheme.cyberCyan.withOpacity(0.5)),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: NeonTheme.cyberCyan.withOpacity(0.2),
+                                  blurRadius: 30,
+                                  spreadRadius: 5
+                                )
+                              ]
+                            ),
+                            child: Icon(
+                              page['icon'],
+                              size: 60,
+                              color: Colors.white,
+                            ),
+                          )
+                          .animate(target: _currentPage == index ? 1 : 0)
+                          .scale(duration: 500.ms, curve: Curves.elasticOut),
+
                           const SizedBox(height: 40),
+
                           GlitchText(
                             page['title'],
                             style: NeonTheme.themeData.textTheme.displayMedium,
                           ),
+
                           const SizedBox(height: 24),
+
                           Text(
                             page['desc'],
                             textAlign: TextAlign.center,
-                            style: NeonTheme.themeData.textTheme.bodyLarge,
-                          ),
+                            style: NeonTheme.themeData.textTheme.bodyLarge?.copyWith(
+                              height: 1.5,
+                              color: Colors.white70
+                            ),
+                          )
+                          .animate()
+                          .fadeIn(delay: 300.ms),
                         ],
                       ),
                     );
@@ -129,18 +160,18 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 padding: const EdgeInsets.all(32.0),
                 child: Column(
                   children: [
-                    // Page Indicator
+                    // Indicators
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: List.generate(_pages.length, (index) {
                         return AnimatedContainer(
                           duration: const Duration(milliseconds: 300),
                           margin: const EdgeInsets.symmetric(horizontal: 4),
-                          width: _currentPage == index ? 24 : 8,
+                          width: _currentPage == index ? 32 : 8,
                           height: 8,
                           decoration: BoxDecoration(
                             color: _currentPage == index
-                                ? NeonTheme.cyberCyan
+                                ? NeonTheme.neonMagenta
                                 : Colors.white24,
                             borderRadius: BorderRadius.circular(4),
                           ),
@@ -151,7 +182,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
                     GradientButton(
                       text: _currentPage == _pages.length - 1
-                          ? 'ENTER NETWORK'
+                          ? 'ENTER GLITCH'
                           : 'CONTINUE',
                       onTap: () {
                          final perm = _pages[_currentPage]['permission'] as Permission?;
@@ -162,13 +193,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                          }
                       },
                     ),
-                    if (_currentPage > 0) ...[
-                      const SizedBox(height: 16),
-                      TextButton(
-                        onPressed: _finishOnboarding,
-                        child: const Text('SKIP PROTOCOL', style: TextStyle(color: Colors.white54)),
-                      )
-                    ]
                   ],
                 ),
               ),

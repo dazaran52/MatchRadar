@@ -10,7 +10,7 @@ class DatabaseService {
   DatabaseService._internal();
 
   Connection? _connection;
-  final String _salt = 'NEON_CYBER_SALT_2077'; // In prod, manage this securely
+  final String _salt = 'NEON_CYBER_SALT_2077';
 
   // Credentials
   final String _host = 'ep-holy-violet-agv7k5cl-pooler.c-2.eu-central-1.aws.neon.tech';
@@ -19,10 +19,10 @@ class DatabaseService {
   final String _pass = 'npg_xm9Q4kjOBXGR';
 
   Future<void> init() async {
-    try {
-      if (_connection != null && _connection!.isOpen) return;
+    if (_connection != null && _connection!.isOpen) return;
 
-      print('Connecting to Neon DB...');
+    try {
+      print('Connecting to Glitch DB...');
       _connection = await Connection.open(
         Endpoint(
           host: _host,
@@ -34,17 +34,18 @@ class DatabaseService {
           sslMode: SslMode.require,
         ),
       );
-      print('Connected to Neon DB.');
+      print('Connected to Glitch DB.');
 
-      await _createTable();
+      await _ensureSchema();
     } catch (e) {
       print('Database Init Error: $e');
       rethrow;
     }
   }
 
-  Future<void> _createTable() async {
-    const sql = '''
+  Future<void> _ensureSchema() async {
+    // Create table with ALL columns if it doesn't exist
+    const createTableSql = '''
       CREATE TABLE IF NOT EXISTS users (
         id SERIAL PRIMARY KEY,
         full_name TEXT,
@@ -53,8 +54,20 @@ class DatabaseService {
         created_at TIMESTAMP DEFAULT NOW()
       );
     ''';
-    await _connection!.execute(sql);
-    print('Table checked/created.');
+    await _connection!.execute(createTableSql);
+
+    // Migration for existing tables that might miss 'full_name'
+    // We try to add it. If it exists, Postgres 9.6+ supports IF NOT EXISTS.
+    // If we are on an older version or if there's another issue, we catch it.
+    try {
+      await _connection!.execute('ALTER TABLE users ADD COLUMN IF NOT EXISTS full_name TEXT;');
+      print('Migration check passed.');
+    } catch (e) {
+      // If error is "column already exists" (code 42701), it's fine.
+      // But IF NOT EXISTS handles that.
+      // If it's another error, print it.
+      print('Migration note (ALTER TABLE): $e');
+    }
   }
 
   String _hashPassword(String password) {
@@ -77,7 +90,6 @@ class DatabaseService {
       );
     } catch (e) {
       print('SignUp Error: $e');
-      // Rethrow to handle in UI (e.g. Unique constraint)
       rethrow;
     }
   }
@@ -97,10 +109,6 @@ class DatabaseService {
       if (result.isEmpty) return null;
 
       final row = result.first;
-      // Depending on postgres package version, row access might differ.
-      // v3.1+ typically returns ResultRow which is list-like or map-like if mapped.
-      // Here assuming column index or using toMap if available.
-      // Safest is usually index if we know the query order.
       return {
         'id': row[0],
         'full_name': row[1],
