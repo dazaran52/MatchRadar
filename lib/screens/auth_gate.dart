@@ -12,7 +12,6 @@ import '../widgets/neo_glass.dart';
 import '../widgets/shine_background.dart';
 import 'onboarding_screen.dart';
 import 'dashboard.dart';
-import 'radar_dashboard.dart'; // Will exist later
 
 class AuthGate extends StatefulWidget {
   const AuthGate({super.key});
@@ -52,7 +51,18 @@ class _AuthGateState extends State<AuthGate> {
         );
 
         if (user != null) {
-          _handleSuccess('Welcome Back');
+          // Success
+          final prefs = await SharedPreferences.getInstance();
+          final onboardingDone = prefs.getBool('onboarding_complete') ?? false;
+
+          if (mounted) {
+             Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (_) =>
+                onboardingDone ? Dashboard() : OnboardingScreen()
+              )
+            );
+          }
         } else {
           _showSnack('Invalid Credentials', NeonTheme.neonRed);
         }
@@ -62,7 +72,7 @@ class _AuthGateState extends State<AuthGate> {
           _emailCtrl.text.trim(),
           _passCtrl.text
         );
-        _handleSuccess('Account Created');
+        _handleSuccess('IDENTITY REGISTERED');
         // setState(() => isLogin = true);
       }
     } catch (e) {
@@ -97,11 +107,11 @@ class _AuthGateState extends State<AuthGate> {
       // Attempt sign in
       final result = await _googleSignIn.signIn();
       if (result != null) {
-        _handleSuccess('Google Login Successful');
+        _handleSuccess('GOOGLE UPLINK ESTABLISHED');
       }
     } catch (e) {
       print('Google Sign In Error: $e');
-      _showSnack('Login Failed. Missing google-services.json?', NeonTheme.neonRed);
+      _showSnack('Uplink Failed. Missing google-services.json?', NeonTheme.neonRed);
     } finally {
       setState(() => _isLoading = false);
     }
@@ -117,11 +127,11 @@ class _AuthGateState extends State<AuthGate> {
         ],
       );
       if (credential.identityToken != null) {
-         _handleSuccess('Apple Login Successful');
+         _handleSuccess('APPLE UPLINK ESTABLISHED');
       }
     } catch (e) {
       print('Apple Sign In Error: $e');
-      _showSnack('Apple Login Failed', NeonTheme.neonRed);
+      _showSnack('Apple Uplink Failed', NeonTheme.neonRed);
     } finally {
       setState(() => _isLoading = false);
     }
@@ -197,12 +207,12 @@ class _AuthGateState extends State<AuthGate> {
                                     style: const TextStyle(color: Colors.white),
                                     decoration: InputDecoration(
                                       prefixIcon: const Icon(Icons.person_outline, color: Colors.white54),
-                                      hintText: 'Full Name',
+                                      hintText: 'CODENAME',
                                       filled: true,
                                       fillColor: Colors.black12,
                                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                                     ),
-                                    validator: (v) => v!.isEmpty ? 'Name Required' : null,
+                                    validator: (v) => v!.isEmpty ? 'Identity Required' : null,
                                   ),
                                   const SizedBox(height: 16),
                                 ],
@@ -214,12 +224,12 @@ class _AuthGateState extends State<AuthGate> {
                           style: const TextStyle(color: Colors.white),
                           decoration: InputDecoration(
                             prefixIcon: const Icon(Icons.alternate_email, color: Colors.white54),
-                            hintText: 'Email',
+                            hintText: 'UPLINK (EMAIL)',
                             filled: true,
                             fillColor: Colors.black12,
                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                           ),
-                          validator: (v) => v!.contains('@') ? null : 'Invalid Email',
+                          validator: (v) => v!.contains('@') ? null : 'Invalid Uplink',
                         ),
                         const SizedBox(height: 16),
                         TextFormField(
@@ -228,17 +238,17 @@ class _AuthGateState extends State<AuthGate> {
                           style: const TextStyle(color: Colors.white),
                           decoration: InputDecoration(
                             prefixIcon: const Icon(Icons.lock_outline, color: Colors.white54),
-                            hintText: 'Password',
+                            hintText: 'ACCESS KEY',
                             filled: true,
                             fillColor: Colors.black12,
                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                           ),
-                          validator: (v) => v!.length < 6 ? 'Password too short' : null,
+                          validator: (v) => v!.length < 6 ? 'Weak Key' : null,
                         ),
                         const SizedBox(height: 32),
 
                         GradientButton(
-                          text: isLogin ? 'LOG IN' : 'SIGN UP',
+                          text: isLogin ? 'INITIALIZE' : 'REGISTER',
                           onTap: _submit,
                           isLoading: _isLoading,
                         ),
@@ -278,7 +288,7 @@ class _AuthGateState extends State<AuthGate> {
                     padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                   ),
-                  child: Text(isLogin ? "CREATE ACCOUNT" : "LOG IN"),
+                  child: Text(isLogin ? "CREATE NEW IDENTITY" : "ACCESS EXISTING NODE"),
                 ),
 
                 const SizedBox(height: 20),

@@ -29,58 +29,53 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     },
     {
       'title': 'LOCATION\nACCESS',
-      'desc': 'To populate your Radar, we need your location.',
+      'desc': 'To populate your Radar, we need your sector coordinates.',
       'icon': FontAwesomeIcons.locationDot,
-      'permissions': [Permission.location],
+      'permission': Permission.location,
     },
     {
       'title': 'NEARBY\nDEVICES',
-      'desc': 'Scan for local signals using Bluetooth and Nearby protocols.',
+      'desc': 'Scan for local nodes via Bluetooth/Wifi protocols.',
       'icon': FontAwesomeIcons.wifi,
-      'permissions': [
-        Permission.nearbyWifiDevices,
-        Permission.bluetoothScan,
-        Permission.bluetoothConnect,
-        Permission.bluetoothAdvertise
-      ],
+      'permission': Permission.nearbyWifiDevices, // Or bluetoothScan
     },
     {
       'title': 'CONTACTS\nSYNC',
-      'desc': 'Find friends in your network.',
+      'desc': 'Identify known operatives in your network.',
       'icon': FontAwesomeIcons.addressBook,
-      'permissions': [Permission.contacts],
+      'permission': Permission.contacts,
     },
   ];
 
-  Future<void> _requestPermissions(List<Permission>? perms) async {
-    if (perms == null || perms.isEmpty) {
+  Future<void> _requestPermission(Permission? perm) async {
+    if (perm == null) {
       _nextPage();
       return;
     }
 
-    // Request all
-    Map<Permission, PermissionStatus> statuses = await perms.request();
+    // Explicitly request
+    print("Requesting permission: $perm");
+    final status = await perm.request();
+    print("Permission status: $status");
 
-    // Check if any significant one was granted
-    bool anyGranted = statuses.values.any((s) => s.isGranted || s.isLimited);
-    bool anyPermanentlyDenied = statuses.values.any((s) => s.isPermanentlyDenied);
-
-    if (anyGranted) {
+    if (status.isGranted || status.isLimited) {
       _nextPage();
-    } else if (anyPermanentlyDenied) {
+    } else if (status.isPermanentlyDenied) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('Permissions permanently denied. Please enable in settings.'),
+            content: const Text('Permission permanently denied. Please enable in settings.'),
             action: SnackBarAction(label: 'SETTINGS', onPressed: openAppSettings),
           ),
         );
       }
+      // Don't block user flow for prototype
       Future.delayed(const Duration(seconds: 2), _nextPage);
     } else {
+      // Denied but not permanent
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Permissions denied. Feature may be limited.')),
+          const SnackBar(content: Text('Permission denied. Some features may be disabled.')),
         );
       }
       _nextPage();
@@ -201,8 +196,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           ? 'ACTIVATE RADAR'
                           : 'ALLOW ACCESS',
                       onTap: () {
-                         final perms = _pages[_currentPage]['permissions'] as List<Permission>?;
-                         _requestPermissions(perms);
+                         final perm = _pages[_currentPage]['permission'] as Permission?;
+                         _requestPermission(perm);
                       },
                     ),
                   ],

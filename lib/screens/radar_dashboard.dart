@@ -48,12 +48,12 @@ class _RadarDashboardState extends State<RadarDashboard> with TickerProviderStat
     super.dispose();
   }
 
-  void _showProfile(int index, double distance) {
+  void _showProfile(int index) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (ctx) => _ProfileRevealModal(index: index, distance: distance),
+      builder: (ctx) => _ProfileRevealModal(index: index),
     );
   }
 
@@ -124,7 +124,7 @@ class _RadarDashboardState extends State<RadarDashboard> with TickerProviderStat
                       left: pos.dx - 25,
                       top: pos.dy - 25,
                       child: GestureDetector(
-                        onTap: () => _showProfile(idx, offset.distance),
+                        onTap: () => _showProfile(idx),
                         child: _RadarNode(index: idx),
                       ),
                     );
@@ -238,8 +238,7 @@ class _RadarNode extends StatelessWidget {
 
 class _ProfileRevealModal extends StatefulWidget {
   final int index;
-  final double distance;
-  const _ProfileRevealModal({required this.index, required this.distance});
+  const _ProfileRevealModal({required this.index});
 
   @override
   State<_ProfileRevealModal> createState() => _ProfileRevealModalState();
@@ -324,7 +323,7 @@ class _ProfileRevealModalState extends State<_ProfileRevealModal> {
                 ),
 
                 const SizedBox(height: 10),
-                Center(child: Text('Match: ${_revealed ? "${((1.0 - widget.distance) * 100).toInt()}%" : "CALCULATING..."}', style: const TextStyle(color: NeonTheme.neonGreen, fontSize: 18, fontWeight: FontWeight.bold))),
+                Center(child: Text('Match: ${_revealed ? "98%" : "CALCULATING..."}', style: TextStyle(color: NeonTheme.neonGreen))),
 
                 const Spacer(),
 
