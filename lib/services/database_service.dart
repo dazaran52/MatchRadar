@@ -10,7 +10,7 @@ class DatabaseService {
   DatabaseService._internal();
 
   Connection? _connection;
-  final String _salt = 'NEON_CYBER_SALT_2077';
+  final String _salt = 'NEON_CYBER_SALT_2077'; // In prod, manage this securely
 
   // Credentials
   final String _host = 'ep-holy-violet-agv7k5cl-pooler.c-2.eu-central-1.aws.neon.tech';
@@ -22,7 +22,7 @@ class DatabaseService {
     try {
       if (_connection != null && _connection!.isOpen) return;
 
-      print('Connecting to Glitch DB...');
+      print('Connecting to Neon DB...');
       _connection = await Connection.open(
         Endpoint(
           host: _host,
@@ -34,43 +34,27 @@ class DatabaseService {
           sslMode: SslMode.require,
         ),
       );
-      print('Connected to Glitch DB.');
+      print('Connected to Neon DB.');
 
-      await _ensureSchema();
+      await _createTable();
     } catch (e) {
       print('Database Init Error: $e');
       rethrow;
     }
   }
 
-  Future<void> _ensureSchema() async {
-    // Check if table exists
-    // We cannot easily check specific columns in standard SQL without querying information_schema,
-    // but we can try to add the column and ignore error or check information_schema.
-
-    // Create table if not exists
-    const createTableSql = '''
+  Future<void> _createTable() async {
+    const sql = '''
       CREATE TABLE IF NOT EXISTS users (
         id SERIAL PRIMARY KEY,
+        full_name TEXT,
         email TEXT UNIQUE,
         password_hash TEXT,
         created_at TIMESTAMP DEFAULT NOW()
       );
     ''';
-    await _connection!.execute(createTableSql);
-
-    // Ensure full_name exists.
-    // If it was created by previous run without full_name, we add it.
-    try {
-      await _connection!.execute('ALTER TABLE users ADD COLUMN IF NOT EXISTS full_name TEXT;');
-    } catch (e) {
-      // Postgres < 9.6 doesn't support IF NOT EXISTS for column. Neon is likely modern (v14/15/16).
-      // If it fails, it might mean column exists or other error.
-      // We'll check via information_schema to be safe if catch block is triggered.
-      print('Migration note: $e');
-    }
-
-    print('Schema ensured.');
+    await _connection!.execute(sql);
+    print('Table checked/created.');
   }
 
   String _hashPassword(String password) {
@@ -93,6 +77,7 @@ class DatabaseService {
       );
     } catch (e) {
       print('SignUp Error: $e');
+      // Rethrow to handle in UI (e.g. Unique constraint)
       rethrow;
     }
   }
@@ -101,7 +86,6 @@ class DatabaseService {
     await init();
     try {
       final hashedPassword = _hashPassword(password);
-      // Fetch full_name as well
       final result = await _connection!.execute(
         Sql.named('SELECT id, full_name, email FROM users WHERE email = @email AND password_hash = @pass'),
         parameters: {
@@ -113,6 +97,10 @@ class DatabaseService {
       if (result.isEmpty) return null;
 
       final row = result.first;
+      // Depending on postgres package version, row access might differ.
+      // v3.1+ typically returns ResultRow which is list-like or map-like if mapped.
+      // Here assuming column index or using toMap if available.
+      // Safest is usually index if we know the query order.
       return {
         'id': row[0],
         'full_name': row[1],
@@ -127,7 +115,6 @@ class DatabaseService {
   Future<List<Map<String, dynamic>>> getAllUsers() async {
     await init();
     try {
-      // Ensure we only select columns that exist
       final result = await _connection!.execute('SELECT id, full_name, email, created_at FROM users ORDER BY created_at DESC');
 
       return result.map((row) {
