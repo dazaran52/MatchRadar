@@ -7,6 +7,7 @@ import '../theme/neon_theme.dart';
 import '../widgets/glitch_text.dart';
 import '../widgets/gradient_button.dart';
 import 'onboarding_screen.dart';
+import 'dashboard.dart';
 
 class AuthGate extends StatefulWidget {
   const AuthGate({super.key});
@@ -54,7 +55,7 @@ class _AuthGateState extends State<AuthGate> {
              Navigator.pushReplacement(
               context,
               MaterialPageRoute(builder: (_) =>
-                onboardingDone ? const Dashboard() : const OnboardingScreen()
+                onboardingDone ? Dashboard() : OnboardingScreen()
               )
             );
           }
