@@ -5,8 +5,10 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../theme/neon_theme.dart';
 import '../widgets/gradient_button.dart';
-import '../widgets/glitch_text.dart';
-import 'dashboard.dart';
+import '../widgets/cyber_glitch_text.dart';
+import '../widgets/neo_glass.dart';
+import '../widgets/shine_background.dart';
+import 'radar_dashboard.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -22,43 +24,60 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final List<Map<String, dynamic>> _pages = [
     {
       'title': 'WELCOME TO\nGLITCH',
-      'desc': 'The future of dating is here. Connect with signals that match your frequency.',
+      'desc': 'We killed the swipe. You are a signal in the void. Connect with others on the Radar.',
       'icon': FontAwesomeIcons.bolt,
     },
     {
       'title': 'LOCATION\nACCESS',
-      'desc': 'We need your coordinates to find matches in your sector.',
+      'desc': 'To populate your Radar, we need your sector coordinates.',
       'icon': FontAwesomeIcons.locationDot,
       'permission': Permission.location,
     },
     {
       'title': 'NEARBY\nDEVICES',
-      'desc': 'Scan for local signals using Bluetooth and Nearby protocols.',
+      'desc': 'Scan for local nodes via Bluetooth/Wifi protocols.',
       'icon': FontAwesomeIcons.wifi,
-      'permission': Permission.nearbyWifiDevices,
+      'permission': Permission.nearbyWifiDevices, // Or bluetoothScan
     },
     {
       'title': 'CONTACTS\nSYNC',
-      'desc': 'Find known operatives in your network.',
+      'desc': 'Identify known operatives in your network.',
       'icon': FontAwesomeIcons.addressBook,
       'permission': Permission.contacts,
     },
   ];
 
   Future<void> _requestPermission(Permission? perm) async {
-    if (perm == null) return;
-
-    // Request permission
-    // For Nearby Devices on Android 12+, we need check.
-    final status = await perm.request();
-
-    if (status.isGranted) {
+    if (perm == null) {
       _nextPage();
+      return;
+    }
+
+    // Explicitly request
+    print("Requesting permission: $perm");
+    final status = await perm.request();
+    print("Permission status: $status");
+
+    if (status.isGranted || status.isLimited) {
+      _nextPage();
+    } else if (status.isPermanentlyDenied) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Permission permanently denied. Please enable in settings.'),
+            action: SnackBarAction(label: 'SETTINGS', onPressed: openAppSettings),
+          ),
+        );
+      }
+      // Don't block user flow for prototype
+      Future.delayed(const Duration(seconds: 2), _nextPage);
     } else {
-      // Proceed anyway for prototype
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Permission skipped for now.')),
-      );
+      // Denied but not permanent
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Permission denied. Some features may be disabled.')),
+        );
+      }
       _nextPage();
     }
   }
@@ -81,7 +100,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     if (mounted) {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => const Dashboard())
+        MaterialPageRoute(builder: (_) => const RadarDashboard())
       );
     }
   }
@@ -89,8 +108,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: NeonTheme.backgroundGradient,
+      body: ShineBackground(
         child: SafeArea(
           child: Column(
             children: [
@@ -103,27 +121,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   itemBuilder: (context, index) {
                     final page = _pages[index];
                     return Padding(
-                      padding: const EdgeInsets.all(32.0),
+                      padding: const EdgeInsets.all(24.0),
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Container(
-                            padding: const EdgeInsets.all(30),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.05),
-                              shape: BoxShape.circle,
-                              border: Border.all(color: NeonTheme.cyberCyan.withOpacity(0.5)),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: NeonTheme.cyberCyan.withOpacity(0.2),
-                                  blurRadius: 30,
-                                  spreadRadius: 5
-                                )
-                              ]
-                            ),
+                          NeoGlass(
+                            borderRadius: 100,
+                            padding: const EdgeInsets.all(40),
                             child: Icon(
                               page['icon'],
-                              size: 60,
+                              size: 80,
                               color: Colors.white,
                             ),
                           )
@@ -132,23 +139,27 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
                           const SizedBox(height: 40),
 
-                          GlitchText(
+                          CyberGlitchText(
                             page['title'],
                             style: NeonTheme.themeData.textTheme.displayMedium,
+                            glitchProbability: 0.05,
                           ),
 
                           const SizedBox(height: 24),
 
-                          Text(
-                            page['desc'],
-                            textAlign: TextAlign.center,
-                            style: NeonTheme.themeData.textTheme.bodyLarge?.copyWith(
-                              height: 1.5,
-                              color: Colors.white70
-                            ),
+                          NeoGlass(
+                            child: Text(
+                              page['desc'],
+                              textAlign: TextAlign.center,
+                              style: NeonTheme.themeData.textTheme.bodyLarge?.copyWith(
+                                height: 1.5,
+                                color: Colors.white70
+                              ),
+                            )
                           )
                           .animate()
-                          .fadeIn(delay: 300.ms),
+                          .fadeIn(delay: 300.ms)
+                          .slideY(begin: 0.2, end: 0),
                         ],
                       ),
                     );
@@ -182,15 +193,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
                     GradientButton(
                       text: _currentPage == _pages.length - 1
-                          ? 'ENTER GLITCH'
-                          : 'CONTINUE',
+                          ? 'ACTIVATE RADAR'
+                          : 'ALLOW ACCESS',
                       onTap: () {
                          final perm = _pages[_currentPage]['permission'] as Permission?;
-                         if (perm != null) {
-                           _requestPermission(perm);
-                         } else {
-                           _nextPage();
-                         }
+                         _requestPermission(perm);
                       },
                     ),
                   ],

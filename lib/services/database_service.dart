@@ -1,7 +1,7 @@
 import 'dart:convert';
-import 'dart:typed_data';
 import 'package:crypto/crypto.dart';
 import 'package:postgres/postgres.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class DatabaseService {
   // Singleton pattern
@@ -12,39 +12,44 @@ class DatabaseService {
   Connection? _connection;
   final String _salt = 'NEON_CYBER_SALT_2077';
 
-  // Credentials
-  final String _host = 'ep-holy-violet-agv7k5cl-pooler.c-2.eu-central-1.aws.neon.tech';
-  final String _database = 'neondb';
-  final String _user = 'neondb_owner';
-  final String _pass = 'npg_xm9Q4kjOBXGR';
-
   Future<void> init() async {
     if (_connection != null && _connection!.isOpen) return;
 
     try {
       print('Connecting to Glitch DB...');
+
+      // Load from env
+      final host = dotenv.env['DB_HOST'];
+      final database = dotenv.env['DB_NAME'];
+      final user = dotenv.env['DB_USER'];
+      final pass = dotenv.env['DB_PASS'];
+
+      if (host == null || database == null || user == null || pass == null) {
+        throw Exception('Database configuration missing in .env');
+      }
+
       _connection = await Connection.open(
         Endpoint(
-          host: _host,
-          database: _database,
-          username: _user,
-          password: _pass,
+          host: host,
+          database: database,
+          username: user,
+          password: pass,
         ),
         settings: ConnectionSettings(
           sslMode: SslMode.require,
         ),
       );
-      print('Connected to Glitch DB.');
+      print('Connected to Glitch DB ($database).');
 
       await _ensureSchema();
     } catch (e) {
       print('Database Init Error: $e');
+      // For prototype, we might want to fail gracefully or show UI error
       rethrow;
     }
   }
 
   Future<void> _ensureSchema() async {
-    // Create table with ALL columns if it doesn't exist
     const createTableSql = '''
       CREATE TABLE IF NOT EXISTS users (
         id SERIAL PRIMARY KEY,
@@ -56,16 +61,9 @@ class DatabaseService {
     ''';
     await _connection!.execute(createTableSql);
 
-    // Migration for existing tables that might miss 'full_name'
-    // We try to add it. If it exists, Postgres 9.6+ supports IF NOT EXISTS.
-    // If we are on an older version or if there's another issue, we catch it.
     try {
       await _connection!.execute('ALTER TABLE users ADD COLUMN IF NOT EXISTS full_name TEXT;');
-      print('Migration check passed.');
     } catch (e) {
-      // If error is "column already exists" (code 42701), it's fine.
-      // But IF NOT EXISTS handles that.
-      // If it's another error, print it.
       print('Migration note (ALTER TABLE): $e');
     }
   }
