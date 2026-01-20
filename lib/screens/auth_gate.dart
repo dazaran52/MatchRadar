@@ -12,7 +12,6 @@ import '../widgets/neo_glass.dart';
 import '../widgets/shine_background.dart';
 import 'onboarding_screen.dart';
 import 'dashboard.dart';
-import 'radar_dashboard.dart'; // Will exist later
 
 class AuthGate extends StatefulWidget {
   const AuthGate({super.key});
@@ -52,7 +51,18 @@ class _AuthGateState extends State<AuthGate> {
         );
 
         if (user != null) {
-          _handleSuccess('ACCESS GRANTED');
+          // Success
+          final prefs = await SharedPreferences.getInstance();
+          final onboardingDone = prefs.getBool('onboarding_complete') ?? false;
+
+          if (mounted) {
+             Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (_) =>
+                onboardingDone ? Dashboard() : OnboardingScreen()
+              )
+            );
+          }
         } else {
           _showSnack('Invalid Credentials', NeonTheme.neonRed);
         }
