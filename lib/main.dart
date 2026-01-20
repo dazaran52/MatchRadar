@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'screens/auth_gate.dart';
 import 'theme/neon_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // Optional: Await DatabaseService().init() if we wanted to block start
+  try {
+    await dotenv.load(fileName: ".env");
+  } catch (e) {
+    print("Warning: .env file not found. Database connection might fail.");
+  }
   runApp(const GlitchApp());
 }
 
